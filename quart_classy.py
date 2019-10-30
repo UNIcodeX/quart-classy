@@ -1,29 +1,79 @@
 """
-    Flask-Classy
+    Quart-Classy
     ------------
 
-    Class based views for the Flask microframework.
+    Class based views for the Quart microframework.
 
     :copyright: (c) 2013 by Freedom Dumlao.
     :license: BSD, see LICENSE for more details.
 """
 
-__version__ = "0.6.8"
+__version__ = "0.0.1"
 
 import sys
 import functools
 import inspect
-from werkzeug.routing import parse_rule
-from flask import request, Response, make_response
+from quart import request, Response, make_response
 import re
 
-_py2 = sys.version_info[0] == 2
+# ~
+'''
+Code for parse_rule and _rule_re taken from https://github.com/pallets/werkzeug/blob/e7ba08f209477cb453f15113f9a4d527a6e81bfe/src/werkzeug/routing.py#L199
+'''
+# ~
 
+_rule_re = re.compile(
+    r"""
+    (?P<static>[^<]*)                           # static rule data
+    <
+    (?:
+        (?P<converter>[a-zA-Z_][a-zA-Z0-9_]*)   # converter name
+        (?:\((?P<args>.*?)\))?                  # converter arguments
+        \:                                      # variable delimiter
+    )?
+    (?P<variable>[a-zA-Z_][a-zA-Z0-9_]*)        # variable name
+    >
+    """,
+    re.VERBOSE,
+)
+
+def parse_rule(rule):
+    """Parse a rule and return it as generator. Each iteration yields tuples
+    in the form ``(converter, arguments, variable)``. If the converter is
+    `None` it's a static url part, otherwise it's a dynamic one.
+    :internal:
+    """
+    pos = 0
+    end = len(rule)
+    do_match = _rule_re.match
+    used_names = set()
+    while pos < end:
+        m = do_match(rule, pos)
+        if m is None:
+            break
+        data = m.groupdict()
+        if data["static"]:
+            yield None, None, data["static"]
+        variable = data["variable"]
+        converter = data["converter"] or "default"
+        if variable in used_names:
+            raise ValueError("variable name %r used twice." % variable)
+        used_names.add(variable)
+        yield converter, data["args"] or None, variable
+        pos = m.end()
+    if pos < end:
+        remaining = rule[pos:]
+        if ">" in remaining or "<" in remaining:
+            raise ValueError("malformed url rule: %r" % rule)
+        yield None, None, remaining
+
+# ~
+# End code from werkzeug
+# ~
 
 def route(rule, **options):
     """A decorator that is used to define custom routes for methods in
-    FlaskView subclasses. The format is exactly the same as Flask's
-    `@app.route` decorator.
+    QuartView subclasses. Like the `@app.route` decorator.
     """
 
     def decorator(f):
@@ -40,9 +90,9 @@ def route(rule, **options):
     return decorator
 
 
-class FlaskView(object):
-    """Base view for any class based views implemented with Flask-Classy. Will
-    automatically configure routes when registered with a Flask app instance.
+class QuartView(object):
+    """Base view for any class based views implemented with Quart-Classy. Will
+    automatically configure routes when registered with a Quart app instance.
     """
 
     decorators = []
@@ -51,29 +101,31 @@ class FlaskView(object):
     trailing_slash = True
 
     @classmethod
-    def register(cls, app, route_base=None, subdomain=None, route_prefix=None,
-                 trailing_slash=None):
-        """Registers a FlaskView class for use with a specific instance of a
-        Flask app. Any methods not prefixes with an underscore are candidates
+    def register(cls, app, route_base=None, subdomain=None, route_prefix=None, 
+                  trailing_slash=None):
+        """Registers a QuartView class for use with a specific instance of a
+        Quart app. Any methods not prefixes with an underscore are candidates
         to be routed and will have routes registered when this method is
         called.
 
-        :param app: an instance of a Flask application
+        :param app: an instance of a Quart application
 
-        :param route_base: The base path to use for all routes registered for
-                           this class. Overrides the route_base attribute if
-                           it has been set.
+        :param route_base:  The base path to use for all routes registered for
+                            this class. Overrides the route_base attribute if
+                            it has been set.
 
-        :param subdomain:  A subdomain that this registration should use when
-                           configuring routes.
+        :param subdomain:   A subdomain that this registration should use when
+                            configuring routes.
 
-        :param route_prefix: A prefix to be applied to all routes registered
-                             for this class. Precedes route_base. Overrides
-                             the class' route_prefix if it has been set.
+        :param route_prefix:  A prefix to be applied to all routes registered
+                              for this class. Precedes route_base. Overrides
+                              the class' route_prefix if it has been set.
         """
 
-        if cls is FlaskView:
-            raise TypeError("cls must be a subclass of FlaskView, not FlaskView itself")
+        print("in `register`")
+
+        if cls is QuartView:
+            raise TypeError("cls must be a subclass of QuartView, not QuartView itself")
 
         if route_base:
             cls.orig_route_base = cls.route_base
@@ -94,7 +146,7 @@ class FlaskView(object):
             cls.trailing_slash = trailing_slash
 
 
-        members = get_interesting_members(FlaskView, cls)
+        members = get_interesting_members(QuartView, cls)
         special_methods = ["get", "put", "patch", "post", "delete", "index"]
 
         for name, value in members:
@@ -164,8 +216,8 @@ class FlaskView(object):
 
     @classmethod
     def make_proxy_method(cls, name):
-        """Creates a proxy function that can be used by Flasks routing. The
-        proxy instantiates the FlaskView subclass and calls the appropriate
+        """Creates a proxy function that can be used by Quart's routing. The
+        proxy instantiates the QuartView subclass and calls the appropriate
         method.
 
         :param name: the name of the method to create a proxy for
@@ -182,7 +234,7 @@ class FlaskView(object):
         def proxy(**forgettable_view_args):
             # Always use the global request object's view_args, because they
             # can be modified by intervening function before an endpoint or
-            # wrapper gets called. This matches Flask's behavior.
+            # wrapper gets called. This matches Quart's behavior.
             del forgettable_view_args
 
             if hasattr(i, "before_request"):
@@ -281,11 +333,10 @@ def get_interesting_members(base_class, cls):
     """Returns a list of methods that can be routed to"""
 
     base_members = dir(base_class)
-    predicate = inspect.ismethod if _py2 else inspect.isfunction
+    predicate = inspect.isfunction
     all_members = inspect.getmembers(cls, predicate=predicate)
     return [member for member in all_members
             if not member[0] in base_members
-            and ((hasattr(member[1], "__self__") and not member[1].__self__ in inspect.getmro(cls)) if _py2 else True)
             and not member[0].startswith("_")
             and not member[0].startswith("before_")
             and not member[0].startswith("after_")]

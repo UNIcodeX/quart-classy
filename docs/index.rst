@@ -1,12 +1,18 @@
-Flask-Classy
+Quart-Classy
 =============
 
-.. module:: flask.ext.classy
+    2019-10-30: This repository has been forked from `Flask-Classy <http://github.com/apiguy/flask-classy>`_. 
+    The goal of this repo is to update Flask-Classy to work with the asynchronous reimplementation of
+    Flask, named `Quart <https://gitlab.com/pgjones/quart>`_, which is the work of `Phil Jones <https://gitlab.com/pgjones>`_.
+    The vast majority of this `README` is the work of `@apiguy <https://twitter.com/APIguy>`_.
+    What follows in the rest of this `README` has merely had instances of "Flask" replaced with "Quart", and "apiguy" replaced with "UNIcodeX".
 
-Flask-Classy is an extension that adds class-based views to Flask.
+.. module:: quart.ext.classy
+
+Quart-Classy is an extension that adds class-based views to Quart.
 But why?
 
-I ❤ Flask. Like a lot. But sometimes projects get a little big
+I ❤ Quart. Like a lot. But sometimes projects get a little big
 and I need some way of managing and organizing all the different
 pieces. I know what you're saying: "But what about Blueprints?"
 
@@ -17,49 +23,49 @@ my views into relevant classes each with their own context and
 behavior. It's also made testing really nifty too.
 
 "OK, I see your point. But can't I just use the base classes in
-``flask.views`` to do that?"
+``quart.views`` to do that?"
 
-Well, yes and no. While ``flask.views.MethodView`` does
-provide some of the functionality of ``flask.ext.classy.FlaskView``
+Well, yes and no. While ``quart.views.MethodView`` does
+provide some of the functionality of ``quart.ext.classy.QuartView``
 it doesn't quite complete the picture by supporting methods that
 aren't part of the typical CRUD operations for a given resource, or
 make it easy for me to override the route rules for particular view.
-And while ``flask.views.View`` does add some context, it requires
+And while ``quart.views.View`` does add some context, it requires
 a class for each view instead of letting me group very similar
 views for the same resource into a single class.
 
-"But my projects aren't that big. Can Flask-Classy do
+"But my projects aren't that big. Can Quart-Classy do
 anything else for me besides making a big project easier to manage?"
 
 Why yes. It does help a bit with some other things.
 
-For example, `Flask-Classy` will automatically generate routes based on the methods
+For example, `Quart-Classy` will automatically generate routes based on the methods
 in your views, and makes it super simple to override those routes
-using Flask's familiar decorator syntax.
+using Quart's familiar decorator syntax.
 
-.. _Flask-Classy: http://github.com/apiguy/flask-classy
-.. _Flask: http://flask.pocoo.org/
+.. _Quart-Classy: http://github.com/UNIcodeX/quart-classy
+.. _Quart: http://quart.pocoo.org/
 
 Installation
 ------------
 
 Install the extension with::
 
-    $ pip install flask-classy
+    $ pip install quart-classy
 
 or if you're kickin' it old-school::
     
-    $ easy_install flask-classy
+    $ easy_install quart-classy
 
 Let's see how it works
 ----------------------
 
 If you're like me, you probably get a better idea of how to use something
 when you see it being used. Let's go ahead and create a little app to
-see how Flask-Classy works::
+see how Quart-Classy works::
 
-    from flask import Flask
-    from flask.ext.classy import FlaskView
+    from quart import Quart
+    from quart.ext.classy import QuartView
 
     # we'll make a list to hold some quotes for our app
     quotes = [
@@ -68,9 +74,9 @@ see how Flask-Classy works::
         "No one knows what he can do till he tries. ~ Publilius Syrus"
     ]
 
-    app = Flask(__name__)
+    app = Quart(__name__)
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         def index(self):
             return "<br>".join(quotes)
 
@@ -86,7 +92,7 @@ one quote? What would we do then?
 
 ::
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         def index(self):
             ...
 
@@ -101,13 +107,13 @@ Now direct your browser to: http://localhost:5000/quotes/1/ and you should
 see the very poignant quote from the esteemed Mr. Edison.
 
 That's cool and all, but what if we just wanted a random quote? What then?
-Let's add a random view to our FlaskView::
+Let's add a random view to our QuartView::
 
     from random import choice
 
 ::
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         def index(self):
             ...
 
@@ -124,8 +130,8 @@ So by now you must be keenly aware of the fact that you have not defined a
 single route, but yet routing is obviously taking place. "Is this voodoo?"
 you ask?
 
-Not at all. Flask-Classy will automatically create routes for any method
-in a FlaskView that doesn't begin with an underscore character.
+Not at all. Quart-Classy will automatically create routes for any method
+in a QuartView that doesn't begin with an underscore character.
 You can still define your own routes of course, and we'll look at that next.
 
 
@@ -136,16 +142,16 @@ Using custom routes
 So let's pretend that `/quotes/random/` is just too unsightly and we must
 fix it to be something more spectacular forthwith. In a moment of blind
 inspiration we decide that getting a random quote is on par with receiving
-a rasher of your favorite porcine delicacy. The new URL should be `/quotes/word_bacon/`
+a rasher of your favorite porcine delicacy. The new url should be `/quotes/word_bacon/`
 so that everyone knows what a treat they are in for.
 
 ::
 
-    from flask.ext.classy import FlaskView, route
+    from quart.ext.classy import QuartView, route
 
 ::
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         def index(self):
             ...
 
@@ -159,7 +165,7 @@ so that everyone knows what a treat they are in for.
 Load up http://localhost:5000/quotes/word_bacon/ in your browser and behold
 your latest achievement.
 
-The route decorator takes exactly the same parameters as Flask's `app.route`
+The route decorator takes exactly the same parameters as Quart's `app.route`
 decorator, so you should feel right at home adding custom routes to any
 views you create.
 
@@ -167,19 +173,19 @@ views you create.
     If you want to use other decorators with your views, you'll need to
     make sure that the ``@route`` decorators are first.
 
-So far, all of our URLs have been prefixed by that `/quotes` bit and you
-have probably deduced that it was derived from the name of your FlaskView
+So far, all of our urls have been prefixed by that `/quotes` bit and you
+have probably deduced that it was derived from the name of your QuartView
 instance (minus the "View" suffix, of course.) "That's all well and good,"
 you're saying, "but how do I change that? What if I want my views at the
 root?" Well, person, I have an answer for you.
 
 
-Flask-Classy's way of talking about "routes"
+Quart-Classy's way of talking about "routes"
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 OK, So I don't want to start inventing a new language (actually I'd love to
 invent a new language, just not right now...) for talking about URLs, but
-since Flask-Classy gives you a lot of flexibility in customizing your routes
+since Quart-Classy gives you a lot of flexibility in customizing your routes
 we might as well make sure we're talking about the same things when we talk
 about what you can do.
 
@@ -187,41 +193,36 @@ What you see below is a route comprised of a route prefix, and a route base:
 
     /neat_prefix/great_base/
 
-The prefix `/neat_prefix/` is only included if you explicitly specify 
-a prefix for the FlaskView, otherwise no prefix will be applied.
+The prefix `/neat_prefix/` is only included if you explicitly specify a
+a prefix for the QuartView, otherwise no prefix will be applied.
 
 The route base `/great_base/` will always exist, either because it was
-inferred automatically from the name of the FlaskView class, or because you
+inferred automatically from the name of the QuartView class, or because you
 specified a route base to use.
-
-.. note::
-    Flask-Classy favors putting trailing slashes at the end of routes without parameters.
-    You can override this behavior by specifying `trailing_slash=False` either
-    as an attribute of your `FlaskView` or in the `register` method.
 
 
 Specifying a Route Prefix
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-A route prefix is a great way to define a common base to URLs. For example lets
-say you had a bunch of views that were all part of your application's API system.
+A route prefix is a great way to define a common base to urls. For example lets
+say you had a bunch of views that were all part of your application's api system.
 
 You *could* write custom route bases for all of them, but if you want to use
-Flask Classy's (admittedly amazing) automatic route generation stuff you'll lose
+Quart Classy's (admittedly amazing) automatic route generation stuff you'll lose
 the part where it infers the route base from the name of the class.
 
 A better choice is to use a route prefix.
 
-You can specify a route prefix either as an attribute of the FlaskView, or when you
-register the FlaskView with the application.
+You can specify a route prefix either as an attribute of the QuartView, or when you
+register the QuartView with the application.
 
 As an attribute:
 ****************
 
 Using an attribute is a great way to define a default prefix, as you can always
-override this value when you register the FlaskView with your app::
+override this value when you register the QuartView with your app:
 
-    class BurgundyView(FlaskView):
+    class BurgundyView(QuartView):
         route_prefix = '/colors/'
 
         def index(self):
@@ -231,18 +232,18 @@ When registering:
 *****************
 
 Alternatively (or additionally, if you like) you can specify a route prefix when
-you register the route with your app::
+you register the route with your app:
 
     BurgundyView.register(app, route_prefix='/redish_colors/')
 
-And this will override any route prefixes set on the FlaskView class itself.
+And this will override any route prefixes set on the QuartView class itself.
 
 
 
 Customizing the Route Base
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-There are 2 ways to customize the base route of a `FlaskView`. (Well
+There are 2 ways to customize the base route of a `QuartView`. (Well
 technically there are 3 if you count changing the name of the class
 but that's hardly a reasonable way to go about it.)
 
@@ -250,10 +251,10 @@ Method 1:
 *********
 
 The first method simply requires you to set a `route_base` attribute on
-your `FlaskView`. Suppose we wanted to make our QuotesView handle the
+your `QuartView`. Suppose we wanted to make our QuotesView handle the
 root of the web application::
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         route_base = '/'
 
         def index(self):
@@ -271,7 +272,7 @@ Method 2:
 
 The second method is perfect for when you're using app factories, and
 you need to be able to specify different base routes for different apps.
-You can specify the route when you register the class with the Flask app
+You can specify the route when you register the class with the Quart app
 instance::
 
     QuotesView.register(app, route_base='/')
@@ -283,13 +284,13 @@ Using multiple routes for a single view
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 What happens when you need to apply more than one route to a specific view
-(for what it's worth, Flask core developer Armin Ronacher `says doing that is
+(for what it's worth, Quart core developer Armin Ronacher `says doing that is
 a bad idea <http://stackoverflow.com/a/7876088/105987>`_). But since you're so
 determined let's see how to do that anyway.
 
 So let's say you add the following routes to one of your views::
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         route_base = '/'
 
         @route('/quote/<id>')
@@ -314,7 +315,7 @@ That would end up generating the following 2 routes:
 "Oh weird! What's with all the _0 and _1 stuff?" you ask in disgust. Well
 first I want to know how you managed to pronounce _0. But really the reason
 is that since there is more than one route, an index is added to prevent an
-endpoint collision. This differs from the default behavior of `Flask`, which
+endpoint collision. This differs from the default behavior of `Quart`, which
 allows you to create collisions.
 
 
@@ -327,7 +328,7 @@ like you.
 
 ::
 
-    class QuotesView(FlaskView):
+    class QuotesView(QuartView):
         route_base = '/'
 
         @route('/quote/<id>', endpoint='show_quote')
@@ -353,14 +354,14 @@ Special method names
 --------------------
 
 So I guess I have to break the narrative a bit here so I can take some
-time to talk about `Flask-Classy`'s special method names.
+time to talk about `Quart-Classy`'s special method names.
 
-Here's the thing. `FlaskView` is smart. No, not solving differential
+Here's the thing. `QuartView` is smart. No, not solving differential
 equations smart, but let's just say it knows how to put the round peg
-in the round hole. When you register a `FlaskView` with an app,
-`FlaskView` will look for special methods in your class. Why? Because
+in the round hole. When you register a `QuartView` with an app,
+`QuartView` will look for special methods in your class. Why? Because
 I care. I know that sometimes you just want things to just *work* and
-not have to think about it. Let's look at `FlaskView`'s very special
+not have to think about it. Let's look at `QuartView`'s very special
 method names:
 
 **index**
@@ -436,14 +437,14 @@ url_for art thou, Romeo?
 Sorry that's a terrible name for a section header, but naming things is what
 am the least skilled at, so please bear with me.
 
-Once you've got your `FlaskView` registered, you'll probably want to be able
-to get the URLs for it in your templates and redirects and whatnot. Flask
+Once you've got your `QuartView` registered, you'll probably want to be able
+to get the urls for it in your templates and redirects and whatnot. Quart
 ships with the awesome `url_for` function that does an excellent job of
-turning a function name into a URL that maps to it. You can use `url_for`
-with Flask-Classy by using the format "<Class name>:<method name>". Let's
+turning a function name into a url that maps to it. You can use `url_for`
+with Quart-Classy by using the format "<Class name>:<method name>". Let's
 look at an example::
 
-    class DuckyView(FlaskView):
+    class DuckyView(QuartView):
         def index(self):
             return "Duckies!"
 
@@ -454,11 +455,11 @@ look at an example::
         def post(self):
             return "Um... Quack?"
 
-In this example, you can get a URL to the index method using::
+In this example, you can get a url to the index method using::
 
     url_for("DuckyView:index")
 
-And you can get a URL to the get method using::
+And you can get a url to the get method using::
 
     url_for("DuckyView:get", name="Howard")
 
@@ -469,7 +470,7 @@ And for that view with the custom endpoint defined?::
 .. note::
     Notice that the custom endpoint does not get prefixed with the class
     name like the auto-generated endpoints. When you define a custom
-    endpoint, we hand that over to Flask in it's original, unaltered form.
+    endpoint, we hand that over to Quart in it's original, unaltered form.
 
 
 Your own methods (they're special too!)
@@ -477,19 +478,19 @@ Your own methods (they're special too!)
 
 Let's talk about how you can add your own methods (like we did with
 `random` back in the day, remember? Good times.) If you add your own
-methods `FlaskView` will detect them during registration and register
+methods `QuartView` will detect them during registration and register
 routes for them, whether you've gone and defined your own, or you just
-want to let `FlaskView` do it's thing. By default, `FlaskView` will
+want to let `QuartView` do it's thing. By default, `QuartView` will
 create a route that is the same as the method name. So if you define a
-view method in your `FlaskView` like this::
+view method in your `QuartView` like this::
 
-    class SomeView(FlaskView):
+    class SomeView(QuartView):
         route_base = "root"
 
         def my_view(self):
             return "Check out my view!"
 
-`FlaskView` will generate a route like this:
+`QuartView` will generate a route like this:
 
 ============ ================================
 **rule**      /some/my_view/
@@ -498,16 +499,16 @@ view method in your `FlaskView` like this::
 ============ ================================
 
 "That's fine." you say. "But what if I have a view method with some
-parameters?" Well `FlaskView` will try to take care of that for you
+parameters?" Well `QuartView` will try to take care of that for you
 too. If you were to define another view like this::
 
-    class AnotherView(FlaskView):
+    class AnotherView(QuartView):
         route_base = "home"
 
         def this_view(self, arg1, arg2):
             return "Args: %s, %s" % (arg1, arg2,)
 
-`FlaskView` would generate a route like this:
+`QuartView` would generate a route like this:
 
 ============ ================================
 **rule**     /home/this_view/<arg1>/<arg2>
@@ -516,7 +517,7 @@ too. If you were to define another view like this::
 ============ ================================
 
 .. note::
-    One important thing to note, is that `FlaskView` does not type your
+    One important thing to note, is that `QuartView` does not type your
     parameters, so if you want or need them you'll need to define the
     route yourself using the `@route` decorator.
 
@@ -524,27 +525,27 @@ too. If you were to define another view like this::
 Decorating Tips
 ---------------
 
-So if you're like me (and who isn't?), you think that FlaskViews are
+So if you're like me (and who isn't?), you think that QuartViews are
 frickin' beautiful. But once you've moved in it's nice to add a little
 personal touch, don't you think?
 
-Of course I'm talking about decorators. The `Flask` ecosystem is full of
+Of course I'm talking about decorators. The `Quart` ecosystem is full of
 excellent extensions that allow you to customize a view's behavior
 simply by adding a decorator, and you can use them with your
-FlaskView's too.::
+QuartView's too.::
 
-    class BetterButterView(FlaskView):
+    class BetterButterView(QuartView):
 
         @login_required  # Ain't it pretty?
         def super_secret(self):
             return "It's a secret to everyone."
 
 But what about when you want to add a decorator to every method in your
-`FlaskView`? All you need to do is add a `decorators` attribute to the
+`QuartView`? All you need to do is add a `decorators` attribute to the
 class definition with a list of decorators you want applied to every
-method and `Flask-Classy` will take care of the rest::
+method and `Quart-Classy` will take care of the rest::
 
-    class WhataGreatView(FlaskView):
+    class WhataGreatView(QuartView):
         decorators = [login_required]
 
         def this_is_secret(self):
@@ -557,7 +558,7 @@ method and `Flask-Classy` will take care of the rest::
 Before and After
 ----------------
 
-Hey, remember that time when you made that big ol' `Flask` app and then
+Hey, remember that time when you made that big 'ol `Quart` app and then
 had those ``@app.before_reqeust`` and ``@app.after_request``
 decorated methods? Remember how you only wanted some of them to run for
 certain views so you had all those ``if view == the_one_I_care_about:``
@@ -565,28 +566,28 @@ statements and stuff?
 
 **Yuck.**
 
-I've been there too, and I think you might like how `Flask-Classy`
-addresses this very touchy issue. ``FlaskView`` will look for wrapper
+I've been there too, and I think you might like how `Quart-Classy`
+addresses this very touchy issue. ``QuartView`` will look for wrapper
 methods when your request is being processed so that you can create more
 fine grained "before and after" processing methods.
 
-Wrap all the views in a FlaskView
+Wrap all the views in a QuartView
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 So there you are, eating a delicious Strawberry Frosted Pop Tart one
-morning, thinking about the awesome `Flask-Classy` app you deployed the
+morning, thinking about the awesome `Quart-Classy` app you deployed the
 night before during one of your late night hackathons and it hits you:
 
 *"Tracking! I need to track those widgets!"*
 
 No doubt it's an inspired thought, but in this case it was a tragic
 oversight. You realize now how lucky it was that you chose to use
-`Flask-Classy` because adding tracking is going to be a snap::
+`Quart-Classy` because adding tracking is going to be a snap::
 
-    from flask.ext.classy import FlaskView
+    from quart.ext.classy import QuartView
     from made_up_tracking import track_it
 
-    class WidgetsView(FlaskView):
+    class WidgetsView(QuartView):
 
         def before_request(self, name):
             track_it("something is happening to a widget")
@@ -603,7 +604,7 @@ oversight. You realize now how lucky it was that you chose to use
 
 Whew. Crisis averted, am I right? So you go about your day and at lunch time
 you hit your favorite Bacon Sandwich place and start daydreaming about your
-life as a rockstar `Flask-Classy` consultant when suddenly:
+life as a rockstar `Quart-Classy` consultant when suddenly:
 
 *"I really only care about when widgets are created and retrieved!"*
 
@@ -611,18 +612,18 @@ Wrap only specific views
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yep, you've got a granularity problem. Not to worry though because
-`Flask-Classy` is happy to let you know that it has *smart* wrapper methods
+`Quart-Classy` is happy to let you know that it has *smart* wrapper methods
 too. Let's say for example you wanted to run something before the ``index`` view
-runs? Just create a method called ``before_index`` and `Flask-Classy` will make
+runs? Just create a method called ``before_index`` and `Quart-Classy` will make
 sure it gets run only before that view. (as you have guessed by now,
 ``after_index`` will be run only after the index view).
 
 ::
 
-    from flask.ext.classy import FlaskView
+    from quart.ext.classy import QuartView
     from made_up_tracking import track_it
 
-    class WidgetsView(FlaskView):
+    class WidgetsView(QuartView):
 
         # Will be run before the 'get' view
         def before_get(self):
@@ -646,7 +647,7 @@ Just to be certain, let's go ahead and review the methods you can write to
 wrap your views:
 
 **before_request(self, name, *args, *kwargs)**
-    Will be called before any view in this ``FlaskView`` is called.
+    Will be called before any view in this ``QuartView`` is called.
 
     :name:       The name of the view that's about to be called.
 
@@ -667,20 +668,20 @@ wrap your views:
 
 
 **after_request(self, name, response)**
-    Will be called after any view in this ``FlaskView`` is called. You must
+    Will be called after any view in this ``QuartView`` is called. You must
     return either the passed in response or a new response.
 
     :name:       The name of the view that was called.
 
 
-    :response:   The response produced after calling the view.
+    :resposne:   The response produced after calling the view.
 
 
 **after_<view_method>(self, response)**
     Will be called after the <view_method> is called. You must return either
     the passed in response or a new response.
 
-    :response:   The response produced after calling the view.
+    :resposne:   The response produced after calling the view.
 
 
 Order of Wrapped Method Execution
@@ -691,35 +692,35 @@ you're thinking. (You're starting to sound like my ex, sheesh.) I prefer the
 term *reliable*.
 
 1. Any method registered with ``@app.before_request``
-2. FlaskView's ``before_request`` method
-3. FlaskView's ``before_<view_method>`` method
+2. QuartView's ``before_request`` method
+3. QuartView's ``before_<view_method>`` method
 4. The actual view method
-5. FlaskView's ``after_<view_method>`` method
-6. FlaskView's ``after_request`` method
+5. QuartView's ``after_<view_method>`` method
+6. QuartView's ``after_request`` method
 7. Any method registered with ``@app.after_request``
 
 Subdomains (getting advanced 'n stuff)
 --------------------------------------
 
-By now, you've built a few hundred `Flask` apps using `Flask-Classy`
+By now, you've built a few hundred `Quart` apps using `Quart-Classy`
 and you probably think you're an expert. But not until you've tried
 the snazzy `Subdomains` feature my friend.
 
-Flask-Classy allows you to specify a subdomain to be used when
-registering routes for your FlaskViews. While the usefulness of this
+Quart-Classy allows you to specify a subdomain to be used when
+registering routes for your QuartViews. While the usefulness of this
 feature is probably apparent to many of you, let's go ahead and take a
 look at one of the many facilitative use cases.
 
-Suppose you've got a sweet API you're porting over from a legacy app
+Suppose you've got a sweet api you're porting over from a legacy app
 and in the migration you want to clean things up a bit and start using
 a subdomain like ``api.socool.biz`` instead of the old way of accessing
 it using ``api`` at the root of the path like ``socool.biz/api``. The
-only catch, of course, is that you have API clients still using that
+only catch, of course, is that you have api clients still using that
 old path based method. What is a hard working developer like you to do?
 
-Thanks to `Flask` and `Flask-Classy` you have some options. There are two
-easy ways you can choose from to tell `Flask-Classy` which subdomains your
-``FlaskView`` should respond to.
+Thanks to `Quart` and `Quart-Classy` you have some options. There are two
+easy ways you can choose from to tell `Quart-Classy` which subdomains your
+``QuartView`` should respond to.
 
 Let's see both methods so you can choose which one works best for your
 application.
@@ -732,9 +733,9 @@ want to support at the same time you're registering your views::
 
     # views.py
 
-    from flask.ext.classy import FlaskView
+    from quart.ext.classy import QuartView
 
-    class CoolApiView(FlaskView):
+    class CoolApiView(QuartView):
 
         def index(self):
             return "API stuff"
@@ -743,32 +744,32 @@ want to support at the same time you're registering your views::
 
     # main.py
 
-    from flask import Flask
+    from quart import Quart
     from views import CoolApiView
 
-    app = Flask(__name__)
+    app = Quart(__name__)
     app.config['SERVER_NAME'] = 'socool.biz'
 
-    # This one matches URLs like: http://socool.biz/api/...
+    # This one matches urls like: http://socool.biz/api/...
     CoolApiView.register(app, route_base='/api/')
 
-    # This one matches URLs like: http://api.socool.biz/...
+    # This one matches urls like: http://api.socool.biz/...
     CoolApiView.register(app, route_base='/', subdomain='api')
 
     if __name__ == "__main__":
         app.run()
 
-The Explicit-Define-In-The-FlaskView Method
+The Explicit-Define-In-The-QuartView Method
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Using this method, you can explicitly define a subdomain as an attribute of
-the ``FlaskView`` subclass::
+the ``QuartView`` subclass::
 
     # views.py
 
-    from flask.ext.classy import FlaskView
+    from quart.ext.classy import QuartView
 
-    class CoolApiView(FlaskView):
+    class CoolApiView(QuartView):
         subdomain = "api"
 
         def index(self):
@@ -778,16 +779,16 @@ the ``FlaskView`` subclass::
 
     # main.py
 
-    from flask import Flask
+    from quart import Quart
     from views import CoolApiView
 
-    app = Flask(__name__)
+    app = Quart(__name__)
     app.config['SERVER_NAME'] = 'socool.biz'
 
-    # This one matches URLs like: http://socool.biz/api/...
+    # This one matches urls like: http://socool.biz/api/...
     CoolApiView.register(app, route_base='/api/', subdomain='')
 
-    # This one matches URLs like: http://api.socool.biz/...
+    # This one matches urls like: http://api.socool.biz/...
     CoolApiView.register(app, route_base="/")
 
     if __name__ == "__main__":
@@ -800,19 +801,19 @@ override the explicit subdomain attribute set inside the class.
 Questions?
 ----------
 
-Feel free to ping me on twitter @apiguy, or head on over to the
-github repo at http://github.com/apiguy/flask-classy so you can join
-the fun.
+Feel free to head on over to the github repo at http://github.com/UNIcodeX/quart-classy so you can join the fun.
 
 
 API
 ---
-.. autoclass:: flask.ext.classy.FlaskView
+.. autoclass:: quart.ext.classy.QuartView
     :members:
 
 
-.. autofunction:: flask.ext.classy.route
+.. autofunction:: quart.ext.classy.route
 
 ----
 
-© Copyright 2013 by Freedom Dumlao, `Follow Me @apiguy <https://twitter.com/APIguy>`_
+© Flask-Classy Copyright 2013 by Freedom Dumlao, `Follow him @apiguy <https://twitter.com/APIguy>`_
+
+© Quart-Classy Copyright 2019 by Jared Fields.

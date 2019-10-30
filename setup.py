@@ -1,26 +1,26 @@
 """
-Flask-Classy
+Quart-Classy
 -------------
 
-Class based views for Flask
+Class based views for Quart
 """
 from setuptools import setup
 
 setup(
-    name='Flask-Classy',
-    version='0.6.8',
-    url='https://github.com/apiguy/flask-classy',
+    name='Quart-Classy',
+    version='0.0.1',
+    url='https://github.com/unicodex/quart-classy',
     license='BSD',
-    author='Freedom Dumlao',
-    author_email='freedomdumlao@gmail.com',
-    description='Class based views for Flask',
+    author='Jared Fields',
+    author_email='jbcomps@gmail.com',
+    description='Class based views for Quart',
     long_description=__doc__,
-    py_modules=['flask_classy'],
+    py_modules=['quart_classy'],
     zip_safe=False,
     include_package_data=True,
     platforms='any',
     install_requires=[
-        'Flask>=0.9'
+        'Quart'
     ],
     classifiers=[
         'Environment :: Web Environment',
@@ -28,11 +28,8 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.7',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules'
     ],
