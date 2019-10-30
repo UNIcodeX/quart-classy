@@ -18,7 +18,7 @@ import re
 
 # ~
 '''
-Code for parse_rule and _rule_re taken from https://github.com/pallets/werkzeug/blob/e7ba08f209477cb453f15113f9a4d527a6e81bfe/src/werkzeug/routing.py#L199
+Code for parse_rule and _rule_re taken from Werkzeug repo at https://github.com/pallets/werkzeug/blob/e7ba08f209477cb453f15113f9a4d527a6e81bfe/src/werkzeug/routing.py#L199
 '''
 # ~
 
@@ -68,12 +68,12 @@ def parse_rule(rule):
         yield None, None, remaining
 
 # ~
-# End code from werkzeug
+# End code from Werkzeug
 # ~
 
 def route(rule, **options):
     """A decorator that is used to define custom routes for methods in
-    QuartView subclasses. Like the `@app.route` decorator.
+    ClassyView subclasses. Like the `@app.route` decorator.
     """
 
     def decorator(f):
@@ -84,13 +84,15 @@ def route(rule, **options):
             f._rule_cache[f.__name__] = [(rule, options)]
         else:
             f._rule_cache[f.__name__].append((rule, options))
+        
+        print(f"==> {f._rule_cache}")
 
         return f
 
     return decorator
 
 
-class QuartView(object):
+class ClassyView(object):
     """Base view for any class based views implemented with Quart-Classy. Will
     automatically configure routes when registered with a Quart app instance.
     """
@@ -103,7 +105,7 @@ class QuartView(object):
     @classmethod
     def register(cls, app, route_base=None, subdomain=None, route_prefix=None, 
                   trailing_slash=None):
-        """Registers a QuartView class for use with a specific instance of a
+        """Registers a ClassyView class for use with a specific instance of a
         Quart app. Any methods not prefixes with an underscore are candidates
         to be routed and will have routes registered when this method is
         called.
@@ -122,10 +124,8 @@ class QuartView(object):
                               the class' route_prefix if it has been set.
         """
 
-        print("in `register`")
-
-        if cls is QuartView:
-            raise TypeError("cls must be a subclass of QuartView, not QuartView itself")
+        if cls is ClassyView:
+            raise TypeError("cls must be a subclass of ClassyView, not ClassyView itself")
 
         if route_base:
             cls.orig_route_base = cls.route_base
@@ -146,7 +146,7 @@ class QuartView(object):
             cls.trailing_slash = trailing_slash
 
 
-        members = get_interesting_members(QuartView, cls)
+        members = get_interesting_members(ClassyView, cls)
         special_methods = ["get", "put", "patch", "post", "delete", "index"]
 
         for name, value in members:
@@ -202,11 +202,12 @@ class QuartView(object):
         if hasattr(cls, "orig_trailing_slash"):
             cls.trailing_slash = cls.orig_trailing_slash
             del cls.orig_trailing_slash
+        
+        print(f"==> Class '{cls.__name__}' registered.")
 
     @classmethod
     def parse_options(cls, options):
-        """Extracts subdomain and endpoint values from the options dict and returns
-           them along with a new dict without those values.
+        """Extracts subdomain and endpoint values from the options dict and returns them along with a new dict without those values.
         """
         options = options.copy()
         subdomain = options.pop('subdomain', None)
@@ -216,8 +217,7 @@ class QuartView(object):
 
     @classmethod
     def make_proxy_method(cls, name):
-        """Creates a proxy function that can be used by Quart's routing. The
-        proxy instantiates the QuartView subclass and calls the appropriate
+        """Creates a proxy function that can be used by Quart's routing. The proxy instantiates the ClassyView subclass and calls the appropriate
         method.
 
         :param name: the name of the method to create a proxy for
@@ -270,12 +270,9 @@ class QuartView(object):
         """Creates a routing rule based on either the class name (minus the
         'View' suffix) or the defined `route_base` attribute of the class
 
-        :param rule: the path portion that should be appended to the
-                     route base
+        :param rule: the path portion that should be appended to the route base
 
-        :param method: if a method's arguments should be considered when
-                       constructing the rule, provide a reference to the
-                       method here. arguments named "self" will be ignored
+        :param method: if a method's arguments should be considered when constructing the rule, provide a reference to the method here. arguments named "self" will be ignored
         """
 
         rule_parts = []
