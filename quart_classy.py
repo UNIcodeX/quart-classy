@@ -13,8 +13,12 @@ __version__ = "0.0.1"
 import sys
 import functools
 import inspect
-from quart import request, Response, make_response
+import asyncio
 import re
+
+from quart import request, Response, make_response
+
+loop = asyncio.get_event_loop()
 
 # ~
 '''
@@ -55,7 +59,7 @@ def parse_rule(rule):
         if data["static"]:
             yield None, None, data["static"]
         variable = data["variable"]
-        converter = data["converter"] or "default"
+        converter = data["converter"] or "async default"
         if variable in used_names:
             raise ValueError("variable name %r used twice." % variable)
         used_names.add(variable)
@@ -71,12 +75,12 @@ def parse_rule(rule):
 # End code from Werkzeug
 # ~
 
-def route(rule, **options):
-    """A decorator that is used to define custom routes for methods in
+async def route(rule, **options):
+    """A decorator that is used to async define custom routes for methods in
     ClassyView subclasses. Like the `@app.route` decorator.
     """
 
-    def decorator(f):
+    async def decorator(f):
         # Put the rule cache on the method itself instead of globally
         if not hasattr(f, '_rule_cache') or f._rule_cache is None:
             f._rule_cache = {f.__name__: [(rule, options)]}
@@ -87,9 +91,9 @@ def route(rule, **options):
         
         print(f"==> {f._rule_cache}")
 
-        return f
+        return await f
 
-    return decorator
+    return await decorator
 
 
 class ClassyView(object):
@@ -146,7 +150,7 @@ class ClassyView(object):
             cls.trailing_slash = trailing_slash
 
 
-        members = get_interesting_members(ClassyView, cls)
+        members = loop.run_until_complete(get_interesting_members(ClassyView, cls))
         special_methods = ["get", "put", "patch", "post", "delete", "index"]
 
         for name, value in members:
@@ -156,7 +160,7 @@ class ClassyView(object):
                 if hasattr(value, "_rule_cache") and name in value._rule_cache:
                     for idx, cached_rule in enumerate(value._rule_cache[name]):
                         rule, options = cached_rule
-                        rule = cls.build_rule(rule)
+                        rule = loop.run_until_complete(cls.build_rule(rule))
                         sub, ep, options = cls.parse_options(options)
 
                         if not subdomain and sub:
@@ -177,7 +181,7 @@ class ClassyView(object):
                     else:
                         methods = [name.upper()]
 
-                    rule = cls.build_rule("/", value)
+                    rule = loop.run_until_complete(cls.build_rule("/", value))
                     if not cls.trailing_slash:
                         rule = rule.rstrip("/")
                     app.add_url_rule(rule, route_name, proxy, methods=methods, subdomain=subdomain)
@@ -186,7 +190,7 @@ class ClassyView(object):
                     route_str = '/%s/' % name
                     if not cls.trailing_slash:
                         route_str = route_str.rstrip('/')
-                    rule = cls.build_rule(route_str, value)
+                    rule = loop.run_until_complete(cls.build_rule(route_str, value))
                     app.add_url_rule(rule, route_name, proxy, subdomain=subdomain)
             except DecoratorCompatibilityError:
                 raise DecoratorCompatibilityError("Incompatible decorator detected on %s in class %s" % (name, cls.__name__))
@@ -206,7 +210,7 @@ class ClassyView(object):
         print(f"==> Class '{cls.__name__}' registered.")
 
     @classmethod
-    def parse_options(cls, options):
+    async def parse_options(cls, options):
         """Extracts subdomain and endpoint values from the options dict and returns them along with a new dict without those values.
         """
         options = options.copy()
@@ -231,44 +235,44 @@ class ClassyView(object):
                 view = decorator(view)
 
         @functools.wraps(view)
-        def proxy(**forgettable_view_args):
+        async def proxy(**forgettable_view_args):
             # Always use the global request object's view_args, because they
             # can be modified by intervening function before an endpoint or
             # wrapper gets called. This matches Quart's behavior.
             del forgettable_view_args
 
             if hasattr(i, "before_request"):
-                response = i.before_request(name, **request.view_args)
+                response = await i.before_request(name, **request.view_args)
                 if response is not None:
                     return response
 
             before_view_name = "before_" + name
             if hasattr(i, before_view_name):
                 before_view = getattr(i, before_view_name)
-                response = before_view(**request.view_args)
+                response = await before_view(**request.view_args)
                 if response is not None:
                     return response
 
             response = view(**request.view_args)
             if not isinstance(response, Response):
-                response = make_response(response)
+                response = await make_response(response)
 
             after_view_name = "after_" + name
             if hasattr(i, after_view_name):
                 after_view = getattr(i, after_view_name)
-                response = after_view(response)
+                response = await after_view(response)
 
             if hasattr(i, "after_request"):
-                response = i.after_request(name, response)
+                response = await i.after_request(name, response)
 
             return response
 
         return proxy
 
     @classmethod
-    def build_rule(cls, rule, method=None):
+    async def build_rule(cls, rule, method=None):
         """Creates a routing rule based on either the class name (minus the
-        'View' suffix) or the defined `route_base` attribute of the class
+        'View' suffix) or the async defined `route_base` attribute of the class
 
         :param rule: the path portion that should be appended to the route base
 
@@ -280,7 +284,7 @@ class ClassyView(object):
         if cls.route_prefix:
             rule_parts.append(cls.route_prefix)
 
-        route_base = cls.get_route_base()
+        route_base = await cls.get_route_base()
         if route_base:
             rule_parts.append(route_base)
 
@@ -290,17 +294,17 @@ class ClassyView(object):
             ignored_rule_args += cls.base_args
 
         if method:
-            args = get_true_argspec(method)[0]
+            args = (await get_true_argspec(method))[0]
             for arg in args:
                 if arg not in ignored_rule_args:
                     rule_parts.append("<%s>" % arg)
 
         result = "/%s" % "/".join(rule_parts)
-        return re.sub(r'(/)\1+', r'\1', result)
+        return await (re.sub(r'(/)\1+', r'\1', result))
 
 
     @classmethod
-    def get_route_base(cls):
+    async def get_route_base(cls):
         """Returns the route base to use for the current class."""
 
         if cls.route_base is not None:
@@ -326,7 +330,7 @@ class ClassyView(object):
         return cls.__name__ + ":%s" % method_name
 
 
-def get_interesting_members(base_class, cls):
+async def get_interesting_members(base_class, cls):
     """Returns a list of methods that can be routed to"""
 
     base_members = dir(base_class)
@@ -339,7 +343,7 @@ def get_interesting_members(base_class, cls):
             and not member[0].startswith("after_")]
 
 
-def get_true_argspec(method):
+async def get_true_argspec(method):
     """Drills through layers of decorators attempting to locate the actual argspec for the method."""
 
     argspec = inspect.getargspec(method)
@@ -359,7 +363,7 @@ def get_true_argspec(method):
         if not inspect.isfunction(inner_method) \
             and not inspect.ismethod(inner_method):
             continue
-        true_argspec = get_true_argspec(inner_method)
+        true_argspec = await get_true_argspec(inner_method)
         if true_argspec:
             return true_argspec
 
