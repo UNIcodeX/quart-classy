@@ -132,8 +132,9 @@ class ClassyBlueprint(Blueprint):
         _http_methods = ['POST']
       
       # Ensure there are no double slashes
-      _route = _route.replace("//", "/")
+      _route    = _route.replace("//", "/")
+      _endpoint = self._class_name_full + "." + _method
       
       # Register the route
-      print(f"==> Registering {self._class_name_full}.{_method} as {_route}, with endpoint {_route}")
-      app.add_url_rule(_route, endpoint=self._class_name_full+"."+_method, view_func=_obj_method, methods=_http_methods, subdomain=self.subdomain)
+      print(f"==> Registering {_endpoint} as {_route}.")
+      app.add_url_rule(_route, endpoint=_endpoint, view_func=_obj_method, methods=_http_methods, subdomain=self.subdomain)
