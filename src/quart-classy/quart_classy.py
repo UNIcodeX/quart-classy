@@ -36,10 +36,43 @@ IGNORED_METHODS = [
 ]
 
 class ClassyBlueprint(Blueprint):
-
+  
+  url_prefix = ""
   decorators = []
+  subdomain  = None
 
   def __init__(self, *args, **kwargs):
+    self._class_name_full = self._get_self_name()
+
+    if "view" in self._class_name_full.lower():
+      self._class_name = self._class_name_full[:-4]
+    
+    if not self.url_prefix:
+      self.url_prefix = f"/{self._class_name}"
+    
+    if self._class_name.lower() == "root":
+      self.url_prefix = ""
+    
+    # Set appropriate defaults in case View was lazily initialized:
+    # i.e. ClassyView().register(app) 
+    #      ~~ rather than ~~
+    #      ClassyView("Classy", __name__, ...)
+
+    # If only one positional argument is given, find out which it is and set a sane
+    # default for the other. Set sane defaults for both, if none are defined.
+    if args and len(args) < 2:
+      _list_args = list()
+      for _arg in args:
+        if "__" not in _arg:
+          args = tuple([args[0], __name__])
+        else:
+          args = tuple([self._class_name , args[0]])
+    elif not args:
+      args = tuple([self._class_name , __name__])
+
+    if self.url_prefix:
+      kwargs['url_prefix'] = self.url_prefix
+
     super().__init__(*args, **kwargs)
 
   @classmethod
@@ -56,33 +89,51 @@ class ClassyBlueprint(Blueprint):
   def _get_self_name(cls):
     return cls.__name__
 
-  def register(self, app):
-    _class_name = self._get_self_name()
-
-    if "view" in _class_name.lower():
-      _class_name = _class_name[:-4]
-    
-    if not self.url_prefix:
-      self.url_prefix = f"/{_class_name}"
-    
-    if _class_name.lower() == "root":
-      self.url_prefix = ""
-    
+  def register(self, app, url_prefix=""):
     _methods = self._get_method_names()
+    if url_prefix:
+      self.url_prefix = url_prefix
+    
+    if self.url_prefix[0] != '/':
+      self.url_prefix = '/' + self.url_prefix
 
+    # Generate routes
     for _method in _methods:
+      # get the objects for the class and method names
+      _obj_class  = self
+      _obj_method = getattr(self, _method)
+      _http_methods = None
+
+      # Generate prefix and base
       if _method == "index":
         _route = f"{self.url_prefix}/"
       else:
         _route = f"{self.url_prefix}/{_method}/"
-      
-      _obj_class  = self
-      _obj_method = getattr(self, _method)
 
+      # Handle possible arguments
+      if _obj_method.__code__.co_argcount > 1:
+        _arguments = tuple(val for val in _obj_method.__code__.co_varnames if val != 'self')
+        print(f"==> {self._class_name_full}.{_method} has argument(s): {', '.join(_arguments)}")
+        for _arg in _arguments:
+          _route += "<" + _arg + ">/"
+
+      # Apply decorators
       if self.decorators:
         for _decorator in reversed(self.decorators):
           _obj_method = _decorator(_obj_method)
 
-      print(f"==> Registering {_route}")
-      app.add_url_rule(_route, endpoint=_route, view_func=_obj_method)
+      # if the method name is "get" then we strip it out
+      if _method == "get":
+        _route = _route.replace("get/", "")
       
+      # Same for "post", but set HTTP method to 'POST'
+      if _method == "post":
+        _route = _route.replace("post/", "")
+        _http_methods = ['POST']
+      
+      # Ensure there are no double slashes
+      _route = _route.replace("//", "/")
+      
+      # Register the route
+      print(f"==> Registering {self._class_name_full}.{_method} as {_route}, with endpoint {_route}")
+      app.add_url_rule(_route, endpoint=self._class_name_full+"."+_method, view_func=_obj_method, methods=_http_methods, subdomain=self.subdomain)

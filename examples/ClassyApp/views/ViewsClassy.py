@@ -3,6 +3,7 @@ from common import *
 
 class ClassyView(ClassyBlueprint):
   decorators = [one, two]
+  url_prefix="/classy"
   
   async def index(self):
     return "ClassyView index"
