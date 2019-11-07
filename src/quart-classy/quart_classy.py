@@ -13,6 +13,9 @@
 
 __version__ = "0.0.1"
 
+from typing import Optional, List, Callable
+from functools import wraps
+
 from quart import Blueprint
 
 IGNORED_METHODS = [
@@ -35,23 +38,16 @@ IGNORED_METHODS = [
   'websocket'
 ]
 
+
 class ClassyBlueprint(Blueprint):
   
   url_prefix = ""
   decorators = []
   subdomain  = None
+  _custom_routes = dict()
 
   def __init__(self, *args, **kwargs):
-    self._class_name_full = self._get_self_name()
-
-    if "view" in self._class_name_full.lower():
-      self._class_name = self._class_name_full[:-4]
-    
-    if not self.url_prefix:
-      self.url_prefix = f"/{self._class_name}"
-    
-    if self._class_name.lower() == "root":
-      self.url_prefix = ""
+    self._derive_info()
     
     # Set appropriate defaults in case View was lazily initialized:
     # i.e. ClassyView().register(app) 
@@ -74,6 +70,43 @@ class ClassyBlueprint(Blueprint):
       kwargs['url_prefix'] = self.url_prefix
 
     super().__init__(*args, **kwargs)
+  
+  def _derive_info(self):
+    self._class_name_full = self._get_self_name()
+
+    if "view" in self._class_name_full.lower():
+      self._class_name = self._class_name_full[:-4]
+    
+    if not self.url_prefix:
+      self.url_prefix = f"/{self._class_name}"
+    
+    if self._class_name.lower() == "root":
+      self.url_prefix = ""
+  
+  @classmethod
+  def route(cls, 
+    path: str,
+    methods: Optional[List[str]] = None,
+    endpoint: Optional[str] = None,
+    defaults: Optional[dict] = None,
+    host: Optional[str] = None,
+    subdomain: Optional[str] = None,
+    *,
+    provide_automatic_options: Optional[bool] = None,
+    strict_slashes: bool = True
+  ) -> Callable:
+    def decorator(func: Callable) -> Callable:
+      cls._custom_routes[func.__name__] = dict()
+      cls._custom_routes[func.__name__]['path'] = path
+      cls._custom_routes[func.__name__]['methods'] = methods
+      cls._custom_routes[func.__name__]['endpoint'] = endpoint
+      cls._custom_routes[func.__name__]['defaults'] = defaults
+      cls._custom_routes[func.__name__]['host'] = host
+      cls._custom_routes[func.__name__]['subdomain'] = subdomain
+      cls._custom_routes[func.__name__]['provide_automatic_options'] = provide_automatic_options
+      cls._custom_routes[func.__name__]['strict_slashes'] = strict_slashes
+      return func
+    return decorator
 
   @classmethod
   def _get_method_names(cls):
@@ -93,9 +126,12 @@ class ClassyBlueprint(Blueprint):
     _methods = self._get_method_names()
     if url_prefix:
       self.url_prefix = url_prefix
+
+    self._derive_info()
     
-    if self.url_prefix[0] != '/':
-      self.url_prefix = '/' + self.url_prefix
+    if self.url_prefix:
+      if self.url_prefix[0] != '/':
+        self.url_prefix = '/' + self.url_prefix
 
     # Generate routes
     for _method in _methods:
@@ -110,10 +146,18 @@ class ClassyBlueprint(Blueprint):
       else:
         _route = f"{self.url_prefix}/{_method}/"
 
+      # If ClassyBlueprint.route() decorator was used, then set vars accordingly
+      if _method in self._custom_routes:
+        args = self._custom_routes[_method]
+        _route = self.url_prefix + args['path']
+        _endpoint = args['endpoint']
+        _http_methods = args['methods']
+        self.subdomain = args['subdomain']
+
       # Handle possible arguments
       if _obj_method.__code__.co_argcount > 1:
         _arguments = tuple(val for val in _obj_method.__code__.co_varnames if val != 'self')
-        print(f"==> {self._class_name_full}.{_method} has argument(s): {', '.join(_arguments)}")
+        app.logger.debug(f"==> Quart-Classy | {self._class_name_full}.{_method} has argument(s): {', '.join(_arguments)}")
         for _arg in _arguments:
           _route += "<" + _arg + ">/"
 
@@ -136,5 +180,5 @@ class ClassyBlueprint(Blueprint):
       _endpoint = self._class_name_full + "." + _method
       
       # Register the route
-      print(f"==> Registering {_endpoint} as {_route}.")
+      app.logger.debug(f"==> Quart-Classy | Registering {_endpoint} as {_route}, with HTTP methods {_http_methods}")
       app.add_url_rule(_route, endpoint=_endpoint, view_func=_obj_method, methods=_http_methods, subdomain=self.subdomain)
