@@ -154,12 +154,13 @@ class ClassyBlueprint(Blueprint):
         _http_methods = args['methods']
         self.subdomain = args['subdomain']
 
-      # Handle possible arguments
-      if _obj_method.__code__.co_argcount > 1:
-        _arguments = tuple(val for val in _obj_method.__code__.co_varnames if val != 'self')
-        app.logger.debug(f"==> Quart-Classy | {self._class_name_full}.{_method} has argument(s): {', '.join(_arguments)}")
-        for _arg in _arguments:
-          _route += "<" + _arg + ">/"
+      # Handle possible arguments, if there were no arguments already defined in _custom_route
+      if '<' and '>' not in _route:
+        if _obj_method.__code__.co_argcount > 1:
+          _arguments = tuple(val for val in _obj_method.__code__.co_varnames if val != 'self')
+          app.logger.debug(f"==> Quart-Classy | {self._class_name_full}.{_method} has argument(s): {', '.join(_arguments)}")
+          for _arg in _arguments:
+            _route += "<" + _arg + ">/"
 
       # Apply decorators
       if self.decorators:
